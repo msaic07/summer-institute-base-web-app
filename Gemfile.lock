@@ -17,6 +17,8 @@ GEM
       rack (~> 2.0)
       rack-protection (= 2.0.5)
       tilt (~> 2.0)
+    sinatra-flash (0.3.0)
+      sinatra (>= 1.0.0)
     tilt (2.0.9)
 
 PLATFORMS
@@ -27,6 +29,7 @@ DEPENDENCIES
   erubi (~> 1.7)
   pry
   sinatra (~> 2.0)
+  sinatra-flash (~> 0.3.0)
 
 BUNDLED WITH
    1.13.7
