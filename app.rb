@@ -2,6 +2,7 @@
 
 require 'sinatra/base'
 require 'logger'
+require 'yaml'
 
 # App is the main application where all your logic & routing will go
 class App < Sinatra::Base
@@ -97,15 +98,17 @@ class App < Sinatra::Base
         redirect(url('/'))
       end
 
-      `touch #{@dir}/.video_render_job_id`
-      `touch #{@dir}/.frame_render_job_id`
+      `touch #{@dir}/.render_job_id.yml`
 
       @images = Dir.glob("#{@dir}/*.png")
-      @frame_render_job_id = File.read("#{@dir}/.frame_render_job_id").chomp
+
+      job_data = YAML.safe_load(File.read("#{@dir}/.render_job_id.yml"))
+
+      @frame_render_job_id = job_data['frame']
       @frame_render_job_state = job_state(@frame_render_job_id)
       @frame_render_badge = badge(@frame_render_job_state)
 
-      @video_render_job_id = File.read("#{@dir}/.video_render_job_id").chomp
+      @video_render_job_id = job_data['video']
       @video_render_job_state = job_state(@video_render_job_id)
       @video_render_badge = badge(@video_render_job_state)
 
@@ -120,7 +123,8 @@ class App < Sinatra::Base
     current_project = "/#{projects_root}/#{dir}"
 
     current_project.tap { |d| FileUtils.mkdir_p(d) }
-    File.open("#{current_project}/.frame_render_job_id", "w+")
+    File.open("#{current_project}/.render_job_id.yml", "w+")
+    File.open("#{current_project}/.render_job_id.yml", 'w') { |f| f.write("frame:\nvideo:") }
 
     session[:flash] = { info: "made new project '#{params[:name]}'" }
     redirect(url("/projects/#{dir}"))
@@ -166,7 +170,7 @@ class App < Sinatra::Base
     output = `/bin/sbatch #{args.join(' ')}  #{__dir__}/render_frames.sh 2>&1`
 
     job_id = output.strip.split(';').first
-    `echo #{job_id} > #{dir}/.frame_render_job_id`
+    `echo frame: #{job_id} > #{dir}/.render_job_id.yml`
 
     session[:flash] = { info: "submitted job #{job_id}" }
     redirect(url("/projects/#{dir.split('/').last}"))
@@ -186,7 +190,7 @@ class App < Sinatra::Base
     output = `/bin/sbatch #{args.join(' ')}  #{__dir__}/render_video.sh 2>&1`
 
     job_id = output.strip.split(';').first
-    `echo #{job_id} > #{output_dir}/.video_render_job_id`
+    `echo video: #{job_id} > #{output_dir}/.render_job_id.yml`
 
     session[:flash] = { info: "Submitted job #{job_id}" }
     redirect(url("/projects/#{output_dir.split('/').last}"))
